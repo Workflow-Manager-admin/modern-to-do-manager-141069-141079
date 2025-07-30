@@ -1,47 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import "./App.css";
+import { AuthProvider, AuthForm, Header, TaskManager, useAuth } from "./components";
 
 // PUBLIC_INTERFACE
 function App() {
-  const [theme, setTheme] = useState('light');
-
-  // Effect to apply theme to document element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+  // For minimal demo: light theme only, but preserve toggling for accessibility
+  const [theme, setTheme] = useState("light");
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
+  // If logged-in: show main UI, otherwise auth form
+  return (
+    <AuthProvider>
+      <MainApp theme={theme} setTheme={setTheme} />
+    </AuthProvider>
+  );
+}
+
+function MainApp({ theme, setTheme }) {
+  const { user, logout } = useAuth();
+  const [authKey, setAuthKey] = useState(Math.random()); // to re-mount on logout
+
+  // On logout, clear key to reset AuthForm and state
+  function handleLogout() {
+    logout();
+    setAuthKey(Math.random());
+  }
+
+  if (!user) {
+    return (
+      <div className="App" data-theme={theme} style={{ minHeight: "100vh" }}>
+        <div style={{ position: "absolute", top: 22, right: 28, zIndex: 30 }}>
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+          </button>
+        </div>
+        <AuthForm key={authKey} onAuthSuccess={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="App" data-theme={theme}>
+      <Header onLogout={handleLogout} />
+      <TaskManager />
     </div>
   );
 }
